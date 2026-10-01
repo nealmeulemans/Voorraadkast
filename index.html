@@ -52,8 +52,10 @@
   .sort-row{display:flex;align-items:center;gap:8px;margin:0 0 12px}
   .sort-row label{margin:0;font-size:13px;color:var(--muted);font-weight:800;white-space:nowrap}
   .sort-select{flex:1;width:auto;padding:11px 12px;border:1px solid #ccd6d0;border-radius:12px;background:white;color:var(--text);font-weight:700}
-  .expiry-scan{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end}
-  .expiry-scan button{white-space:nowrap}
+  .expiry-scan{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center}
+  .expiry-scan input{min-width:0;width:100%;height:46px}
+  .expiry-scan button{white-space:nowrap;min-height:46px;padding:10px 12px}
+  @media(max-width:360px){.expiry-scan{grid-template-columns:1fr}.expiry-scan button{width:100%}}
   .ocr-status{display:none;margin-top:8px;padding:10px 12px;border-radius:12px;background:#eef6f0;border:1px solid #cee0d2;color:var(--muted);font-size:12px}
   .ocr-status.show{display:block}
   .product-card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px;margin-bottom:10px;display:flex;gap:12px;align-items:center;box-shadow:var(--shadow)}
@@ -81,7 +83,7 @@
   .preview{margin-top:12px;padding:12px;background:#f5f7f5;border-radius:12px;font-size:13px;color:var(--muted)}
   .demo-row{display:flex;gap:8px;margin-top:10px}
   .demo-row button{flex:1;border:1px solid var(--line);background:white;border-radius:12px;padding:10px;cursor:pointer}
-  .bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);max-width:480px;width:100%;background:rgba(255,255,255,.96);backdrop-filter:blur(12px);border-top:1px solid var(--line);display:grid;grid-template-columns:1fr 1.1fr 1.05fr 1fr;padding:8px 5px}
+  .bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);max-width:480px;width:100%;background:rgba(255,255,255,.96);backdrop-filter:blur(12px);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(3,minmax(0,1fr));padding:8px 5px}
   .nav-btn{border:0;background:transparent;padding:8px 5px;border-radius:12px;color:var(--muted);font-weight:800;cursor:pointer;font-size:13px}
   .nav-btn.active{background:#edf4ee;color:var(--accent)}
   .toast{position:fixed;left:50%;bottom:82px;transform:translateX(-50%) translateY(20px);background:#1f2a24;color:white;padding:11px 15px;border-radius:999px;font-size:13px;opacity:0;pointer-events:none;transition:.22s;z-index:20}
@@ -282,7 +284,6 @@
   <button class="nav-btn active" data-screen="stockScreen">Voorraad</button>
   <button class="nav-btn" data-screen="shoppingScreen">Winkellijst <span class="shopping-badge" id="shoppingCount">0</span></button>
   <button class="nav-btn" data-screen="myProductsScreen">Mijn producten</button>
-  <button class="nav-btn" data-screen="addScreen">＋ Toevoegen</button>
 </div>
 <div class="toast" id="toast"></div>
 
@@ -916,7 +917,6 @@ function clearForm(){
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
-  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active', b.dataset.screen===id));
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
@@ -1059,9 +1059,17 @@ async function scanExpiryPhoto(file, targetId='expiry', statusId='ocrStatus'){
     const worker=await loadExpiryOcrWorker();
     const prepared=await prepareExpiryImage(file);
     setOcrStatus('Vervaldatum wordt gelezen…',true,statusId);
-    const result=await worker.recognize(prepared);
-    const text=result?.data?.text || '';
-    const date=extractExpiryDate(text);
+    let result=await worker.recognize(prepared);
+    let text=result?.data?.text || '';
+    let date=extractExpiryDate(text);
+    // Sommige iPhone-foto's verliezen detail door contrastbewerking. Probeer
+    // daarom ook de originele foto als de eerste herkenning geen datum oplevert.
+    if(!date){
+      setOcrStatus('Nog even proberen met de originele foto…',true,statusId);
+      result=await worker.recognize(file);
+      text=result?.data?.text || '';
+      date=extractExpiryDate(text);
+    }
     if(date){
       document.getElementById(targetId).value=date;
       if(targetId==='expiry') updatePreview();
@@ -1073,7 +1081,7 @@ async function scanExpiryPhoto(file, targetId='expiry', statusId='ocrStatus'){
     }
   }catch(err){
     console.error(err);
-    setOcrStatus('De foto kon niet automatisch worden gelezen. Je kunt de datum hieronder handmatig invullen.',true,statusId);
+    setOcrStatus('Automatisch lezen lukte niet. Controleer je internetverbinding en probeer een scherpe close-up; je kunt de datum ook handmatig invullen.',true,statusId);
     showToast('OCR kon niet worden uitgevoerd.');
   }
 }
