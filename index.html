@@ -1,0 +1,1452 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Voorraadkast</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#2f6f4e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Voorraadkast">
+<link rel="apple-touch-icon" href="./icons/icon-180.png">
+
+<style>
+  :root{
+    --bg:#f5f6f4;
+    --card:#ffffff;
+    --text:#1f2a24;
+    --muted:#718078;
+    --line:#dfe5e1;
+    --accent:#2f6f4e;
+    --accent-dark:#24563c;
+    --green-bg:#e7f5ea;
+    --green:#24713c;
+    --orange-bg:#fff1dc;
+    --orange:#a76100;
+    --red-bg:#fde7e5;
+    --red:#b63a35;
+    --gray-bg:#eceeed;
+    --gray:#66716b;
+    --shadow:0 8px 24px rgba(23,38,29,.08);
+    font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text)}
+  button,input{font:inherit}
+  .app{max-width:480px;min-height:100vh;margin:0 auto;background:var(--bg);padding-bottom:84px}
+  header{background:var(--card);padding:20px 18px 16px;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+  .brand{display:flex;justify-content:space-between;align-items:center}
+  .brand h1{font-size:24px;margin:0}
+  .subtitle{color:var(--muted);margin:4px 0 0;font-size:14px}
+  .icon-btn{width:42px;height:42px;border:0;border-radius:12px;background:#eef3ef;color:var(--accent);font-size:22px;cursor:pointer}
+  main{padding:18px}
+  .screen{display:none}
+  .screen.active{display:block}
+  .summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px}
+  .summary{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:13px 10px;box-shadow:var(--shadow)}
+  .summary .num{font-size:23px;font-weight:800}
+  .summary .label{font-size:12px;color:var(--muted);margin-top:2px}
+  .section-title{font-size:16px;font-weight:800;margin:18px 0 10px}
+  .sort-row{display:flex;align-items:center;gap:8px;margin:0 0 12px}
+  .sort-row label{margin:0;font-size:13px;color:var(--muted);font-weight:800;white-space:nowrap}
+  .sort-select{flex:1;width:auto;padding:11px 12px;border:1px solid #ccd6d0;border-radius:12px;background:white;color:var(--text);font-weight:700}
+  .expiry-scan{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end}
+  .expiry-scan button{white-space:nowrap}
+  .ocr-status{display:none;margin-top:8px;padding:10px 12px;border-radius:12px;background:#eef6f0;border:1px solid #cee0d2;color:var(--muted);font-size:12px}
+  .ocr-status.show{display:block}
+  .product-card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px;margin-bottom:10px;display:flex;gap:12px;align-items:center;box-shadow:var(--shadow)}
+  .product-icon{width:52px;height:52px;border-radius:14px;background:#eef3ef;display:flex;align-items:center;justify-content:center;font-size:28px;flex:none}
+  .product-info{min-width:0;flex:1}
+  .product-name{font-weight:800;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .product-meta{color:var(--muted);font-size:13px;margin-top:4px}
+  .status{margin-top:7px;display:inline-flex;align-items:center;gap:5px;padding:5px 8px;border-radius:999px;font-size:12px;font-weight:800}
+  .status.green{background:var(--green-bg);color:var(--green)}
+  .status.orange{background:var(--orange-bg);color:var(--orange)}
+  .status.red{background:var(--red-bg);color:var(--red)}
+  .status.gray{background:var(--gray-bg);color:var(--gray)}
+  .qty{font-weight:800;font-size:14px}
+  .empty{background:var(--card);border:1px dashed #cdd6d0;border-radius:18px;padding:28px 18px;text-align:center;color:var(--muted)}
+  .empty-icon{font-size:38px;margin-bottom:8px}
+  .primary{width:100%;border:0;background:var(--accent);color:white;border-radius:15px;padding:15px;font-weight:800;cursor:pointer;box-shadow:0 6px 15px rgba(47,111,78,.22)}
+  .primary:hover{background:var(--accent-dark)}
+  .secondary{border:1px solid var(--line);background:white;color:var(--text);border-radius:14px;padding:13px;font-weight:700;cursor:pointer}
+  .scan-btn{width:100%;padding:16px;border:2px dashed #aac2b2;background:#f3f8f4;color:var(--accent);border-radius:16px;font-weight:800;cursor:pointer;font-size:15px}
+  .form-card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:var(--shadow)}
+  label{display:block;font-size:13px;font-weight:800;margin:14px 0 7px}
+  input{width:100%;padding:13px;border:1px solid #ccd6d0;border-radius:12px;background:white;outline:none}
+  input:focus{border-color:#7ca58d;box-shadow:0 0 0 3px rgba(124,165,141,.14)}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .preview{margin-top:12px;padding:12px;background:#f5f7f5;border-radius:12px;font-size:13px;color:var(--muted)}
+  .demo-row{display:flex;gap:8px;margin-top:10px}
+  .demo-row button{flex:1;border:1px solid var(--line);background:white;border-radius:12px;padding:10px;cursor:pointer}
+  .bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);max-width:480px;width:100%;background:rgba(255,255,255,.96);backdrop-filter:blur(12px);border-top:1px solid var(--line);display:grid;grid-template-columns:1fr 1.1fr 1.05fr 1fr;padding:8px 5px}
+  .nav-btn{border:0;background:transparent;padding:8px 5px;border-radius:12px;color:var(--muted);font-weight:800;cursor:pointer;font-size:13px}
+  .nav-btn.active{background:#edf4ee;color:var(--accent)}
+  .toast{position:fixed;left:50%;bottom:82px;transform:translateX(-50%) translateY(20px);background:#1f2a24;color:white;padding:11px 15px;border-radius:999px;font-size:13px;opacity:0;pointer-events:none;transition:.22s;z-index:20}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .danger-link{color:var(--red);background:none;border:0;cursor:pointer;font-weight:700;margin-top:14px}
+
+  .scanner-modal{display:none;position:fixed;inset:0;background:rgba(12,20,15,.72);z-index:50;padding:16px;align-items:center;justify-content:center}
+  .scanner-modal.open{display:flex}
+  .scanner-box{width:100%;max-width:460px;background:white;border-radius:22px;padding:14px;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+  .scanner-head{display:flex;align-items:center;justify-content:space-between;padding:2px 0 12px;font-size:18px}
+  .scanner-video-wrap{position:relative;border-radius:17px;overflow:hidden;background:#101412;aspect-ratio:3/4}
+  #scannerVideo{width:100%;height:100%;object-fit:cover}
+  .scan-frame{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+  .scan-frame span{width:72%;height:26%;border:3px solid rgba(255,255,255,.95);border-radius:14px;box-shadow:0 0 0 999px rgba(0,0,0,.12)}
+  .scanner-message{text-align:center;padding:12px 8px 4px;color:var(--muted);font-size:13px;min-height:42px}
+  .lookup-row{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:8px}
+  .lookup-row button{white-space:nowrap}
+  .product-hit{display:none;margin-top:12px;padding:12px;border-radius:14px;background:#eef6f0;border:1px solid #cee0d2}
+  .product-hit.show{display:block}
+  .product-hit-title{font-weight:800}
+  .product-hit-meta{font-size:12px;color:var(--muted);margin-top:3px}
+  .product-hit-actions{display:flex;gap:8px;margin-top:10px}.product-hit-actions button{flex:1;font-size:12px;padding:10px}
+
+
+  .qty-control{display:flex;align-items:center;gap:5px;background:#f2f5f3;border:1px solid var(--line);border-radius:12px;padding:3px;flex:none}
+  .qty-btn{width:30px;height:30px;border:0;border-radius:8px;background:white;color:var(--accent);font-size:20px;line-height:1;cursor:pointer;font-weight:800}
+  .qty-btn:hover{background:#e9f1eb}
+  .qty-value{min-width:24px;text-align:center;font-weight:800;font-size:14px}
+
+  .shopping-item{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px;margin-bottom:10px;display:flex;gap:12px;align-items:center;box-shadow:var(--shadow)}
+  .shopping-check{width:24px;height:24px;accent-color:var(--accent);flex:none;cursor:pointer}
+  .shopping-info{min-width:0;flex:1}
+  .shopping-name{font-weight:800;font-size:16px}
+  .shopping-meta{color:var(--muted);font-size:13px;margin-top:4px}
+  .shopping-actions{display:flex;gap:6px;align-items:center;flex:none}
+  .shopping-add-stock{border:1px solid var(--line);background:#fff;color:var(--accent);border-radius:10px;padding:8px 9px;font-weight:800;cursor:pointer;font-size:12px}
+  .shopping-remove{border:1px solid var(--line);background:#fff;color:var(--red);border-radius:10px;padding:8px 10px;font-weight:800;cursor:pointer}
+  .shopping-top{display:flex;gap:8px;margin-bottom:14px}
+  .shopping-top input{flex:1}
+  .shopping-badge{display:inline-flex;min-width:20px;height:20px;padding:0 6px;align-items:center;justify-content:center;border-radius:999px;background:var(--accent);color:#fff;font-size:11px;margin-left:5px}
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(12,20,15,.58);z-index:40;padding:18px;align-items:center;justify-content:center}
+  .modal-overlay.open{display:flex}
+  .confirm-box{width:100%;max-width:420px;background:#fff;border-radius:22px;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+  .confirm-box h3{margin:0 0 8px;font-size:19px}
+  .confirm-box p{margin:0;color:var(--muted);line-height:1.45}
+  .confirm-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
+  .stock-restock{margin-top:14px;padding:12px;background:#f3f7f4;border-radius:14px;font-size:13px;color:var(--muted)}
+
+  .shopping-scan-wrap{display:flex;gap:8px;margin-bottom:10px}
+  .shopping-scan-wrap .scan-btn{flex:1;padding:13px;font-size:13px}
+  .shopping-lookup{display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:14px}
+  .my-products-tools{display:flex;gap:8px;margin-bottom:14px}
+  .my-products-tools input{flex:1}
+  .my-product-card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px;margin-bottom:10px;box-shadow:var(--shadow)}
+  .my-product-main{display:flex;align-items:center;gap:12px}
+  .my-product-icon{width:48px;height:48px;border-radius:13px;background:#eef3ef;display:flex;align-items:center;justify-content:center;font-size:25px;flex:none}
+  .my-product-info{min-width:0;flex:1}
+  .my-product-name{font-weight:800;font-size:16px}
+  .my-product-meta{color:var(--muted);font-size:12px;margin-top:4px}
+  .my-product-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+  .my-product-actions button{flex:1;min-width:100px;padding:10px;font-size:12px}
+  .inspiration-box{margin-top:10px;background:#fff8e8;border:1px solid #efdfb3;border-radius:14px;padding:12px;font-size:13px}
+  .inspiration-box strong{display:block;margin-bottom:5px}
+  .restock-grid{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end;margin-top:14px}
+  .restock-grid button{white-space:nowrap}
+  .restock-modal-title{font-size:18px;font-weight:800;margin-bottom:4px}
+
+
+  .shopping-barcode-inline{display:flex;gap:8px;align-items:center;margin:10px 0 14px}
+  .barcode-input-wrap{position:relative;flex:1}
+  .barcode-input-wrap input{width:100%;padding-right:48px;box-sizing:border-box}
+  .barcode-camera-btn{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:36px;height:36px;border:0;background:transparent;border-radius:10px;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center}
+  .barcode-camera-btn:hover{background:#f0f3f1}
+
+</style>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand">
+      <div>
+        <h1>Voorraadkast</h1>
+        <div class="subtitle">Jouw digitale voorraadkast</div>
+      </div>
+      <button class="icon-btn" id="quickAdd" title="Product toevoegen">＋</button>
+    </div>
+  </header>
+
+  <main>
+    <section id="stockScreen" class="screen active">
+      <div class="summary-grid">
+        <div class="summary"><div class="num" id="totalCount">0</div><div class="label">producten</div></div>
+        <div class="summary"><div class="num" id="soonCount">0</div><div class="label">binnen 7 dagen</div></div>
+        <div class="summary"><div class="num" id="expiredCount">0</div><div class="label">verlopen</div></div>
+      </div>
+
+      <button class="primary" id="addFromStock">＋ Product toevoegen</button>
+
+      <div class="section-title">Mijn kast</div>
+      <div class="sort-row">
+        <label for="sortSelect">Sorteren:</label>
+        <select id="sortSelect" class="sort-select" aria-label="Voorraad sorteren">
+          <option value="name_asc">Alfabet A–Z</option>
+          <option value="name_desc">Alfabet Z–A</option>
+          <option value="expiry_asc">Vervaldatum: eerstvolgende</option>
+          <option value="expiry_desc">Vervaldatum: laatste eerst</option>
+        </select>
+      </div>
+      <div id="productList"></div>
+    </section>
+
+
+    <section id="shoppingScreen" class="screen">
+      <div class="section-title" style="margin-top:0">Winkellijst</div>
+
+      <div class="shopping-scan-wrap">
+        <button class="scan-btn" id="scanShoppingButton" type="button">▦ Barcode scannen</button>
+      </div>
+      <div class="shopping-lookup">
+        <input id="shoppingBarcodeInput" placeholder="Of geef barcode in" inputmode="numeric">
+        <button class="secondary" id="shoppingBarcodeButton" type="button">Zoeken</button>
+      </div>
+
+      <div class="shopping-top">
+        <input id="shoppingInput" placeholder="Of productnaam toevoegen" autocomplete="off">
+        <button class="primary" id="addShoppingButton" style="width:auto;padding:13px 15px;white-space:nowrap">＋ Voeg toe</button>
+      </div>
+
+      <div id="shoppingList"></div>
+    </section>
+
+    <section id="myProductsScreen" class="screen">
+      <div class="section-title" style="margin-top:0">Mijn producten</div>
+      <div class="subtitle" style="margin-bottom:12px">Alle producten die je eerder aan je voorraad hebt toegevoegd of via de winkellijst hebt gekocht.</div>
+      <div class="my-products-tools">
+        <input id="myProductsSearch" placeholder="Zoek in mijn producten…" autocomplete="off">
+      </div>
+      <div id="myProductsList"></div>
+    </section>
+
+    <section id="addScreen" class="screen">
+      <div class="section-title" style="margin-top:0">Product toevoegen</div>
+      <div class="form-card">
+        <button class="scan-btn" id="scanButton">▦ &nbsp; Barcode scannen met camera</button>
+        <div class="lookup-row">
+          <input id="barcodeLookup" placeholder="Of geef barcode handmatig in" inputmode="numeric">
+          <button class="secondary" id="lookupButton" type="button">Zoeken</button>
+        </div>
+        <div class="product-hit" id="productHit">
+          <div class="product-hit-title" id="productHitTitle"></div>
+          <div class="product-hit-meta" id="productHitMeta"></div>
+          <div class="product-hit-actions">
+            <button class="secondary" id="rememberProductButton" type="button">Onthouden voor volgende keer</button>
+          </div>
+        </div>
+        <div style="margin-top:9px;font-size:11px;color:var(--muted)">Barcodegegevens komen eerst uit je eigen Voorraadkast-geheugen en daarna uit Open Food Facts. Onbekende producten kun je één keer zelf benoemen en onthouden.</div>
+        <div class="demo-row">
+          <button type="button" onclick="fillDemo('nutella')">Demo Nutella</button>
+          <button type="button" onclick="fillDemo('pasta')">Demo Pasta</button>
+        </div>
+
+        <label for="productName">Productnaam</label>
+        <input id="productName" placeholder="bv. Nutella" autocomplete="off">
+
+        <label for="barcode">Barcode</label>
+        <input id="barcode" placeholder="Wordt ingevuld na het scannen" inputmode="numeric">
+
+        <label for="expiry">Vervaldatum</label>
+        <div class="expiry-scan">
+          <input id="expiry" type="date">
+          <button class="secondary" id="scanExpiryButton" type="button">📷 Scan datum</button>
+        </div>
+        <input id="expiryPhoto" type="file" accept="image/*" capture="environment" style="display:none">
+        <div class="ocr-status" id="ocrStatus"></div>
+
+        <div class="row">
+          <div>
+            <label for="quantity">Aantal</label>
+            <input id="quantity" type="number" min="1" value="1">
+          </div>
+          <div>
+            <label for="category">Categorie</label>
+            <input id="category" placeholder="bv. Broodbeleg">
+          </div>
+        </div>
+
+        <div class="preview" id="previewBox">Vul een vervaldatum in om de kleurstatus te zien.</div>
+
+        <button class="primary" id="saveButton" style="margin-top:14px">Product opslaan</button>
+        <button class="danger-link" id="clearButton" type="button">Formulier leegmaken</button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="bottom-nav">
+  <button class="nav-btn active" data-screen="stockScreen">Voorraad</button>
+  <button class="nav-btn" data-screen="shoppingScreen">Winkellijst <span class="shopping-badge" id="shoppingCount">0</span></button>
+  <button class="nav-btn" data-screen="myProductsScreen">Mijn producten</button>
+  <button class="nav-btn" data-screen="addScreen">＋ Toevoegen</button>
+</div>
+<div class="toast" id="toast"></div>
+
+
+<div id="restockModal" class="modal-overlay" aria-hidden="true">
+  <div class="confirm-box">
+    <div class="restock-modal-title">Product opnieuw aan voorraad toevoegen</div>
+    <p id="restockProductName"></p>
+    <label for="restockExpiry">Vervaldatum</label>
+    <div class="restock-grid">
+      <input id="restockExpiry" type="date">
+      <button class="secondary" id="scanRestockExpiryButton" type="button">📷 Scan datum</button>
+    </div>
+    <input id="restockExpiryPhoto" type="file" accept="image/*" capture="environment" style="display:none">
+    <div class="ocr-status" id="restockOcrStatus"></div>
+    <label for="restockQuantity">Aantal</label>
+    <input id="restockQuantity" type="number" min="1" value="1">
+    <div class="confirm-actions">
+      <button class="secondary" id="restockCancel" type="button">Annuleren</button>
+      <button class="primary" id="restockSave" type="button">Aan voorraad toevoegen</button>
+    </div>
+  </div>
+</div>
+
+<div id="shoppingConfirmModal" class="modal-overlay" aria-hidden="true">
+  <div class="confirm-box">
+    <h3 id="shoppingConfirmTitle">Product toevoegen aan winkellijst?</h3>
+    <p id="shoppingConfirmText"></p>
+    <div class="confirm-actions">
+      <button class="secondary" id="shoppingConfirmNo" type="button">Nee</button>
+      <button class="primary" id="shoppingConfirmYes" type="button">Ja, toevoegen</button>
+    </div>
+  </div>
+</div>
+
+<div id="scannerModal" class="scanner-modal" aria-hidden="true">
+  <div class="scanner-box">
+    <div class="scanner-head">
+      <strong id="scannerTitle">Barcode scannen</strong>
+      <button class="icon-btn" id="closeScanner" aria-label="Scanner sluiten">×</button>
+    </div>
+    <div class="scanner-video-wrap">
+      <video id="scannerVideo" playsinline autoplay muted></video>
+      <div class="scan-frame"><span></span></div>
+    </div>
+    <div class="scanner-message" id="scannerMessage">Richt de camera op de barcode.</div>
+    <button class="secondary" id="stopScanner" style="width:100%;margin-top:10px">Scanner sluiten</button>
+  </div>
+</div>
+<script>
+const KEY = 'digitale-kast-products-v1';
+let products = JSON.parse(localStorage.getItem(KEY) || '[]');
+const PRODUCT_DB_KEY = 'voorraadkast-product-db-v1';
+let knownProducts = JSON.parse(localStorage.getItem(PRODUCT_DB_KEY) || '{}');
+const SHOPPING_KEY = 'voorraadkast-shopping-v1';
+let shoppingList = JSON.parse(localStorage.getItem(SHOPPING_KEY) || '[]');
+let pendingShoppingItem = null;
+let pendingShoppingIndex = null;
+let currentSort = localStorage.getItem('voorraadkast-sort-v1') || 'expiry_asc';
+let expiryOcrWorker = null;
+let pendingRestockIndex = null;
+const MY_PRODUCTS_KEY = 'voorraadkast-my-products-v1';
+let myProducts = JSON.parse(localStorage.getItem(MY_PRODUCTS_KEY) || '{}');
+let shoppingScannerActive = false;
+
+function todayAtMidnight(){
+  const d = new Date();
+  d.setHours(0,0,0,0);
+  return d;
+}
+
+function daysUntil(dateString){
+  if(!dateString) return null;
+  const d = new Date(dateString + 'T00:00:00');
+  const diff = d - todayAtMidnight();
+  return Math.ceil(diff / 86400000);
+}
+
+function statusFor(dateString){
+  const days = daysUntil(dateString);
+  if(days === null) return {cls:'gray', emoji:'⚪', text:'Geen datum'};
+  if(days < 0) return {cls:'gray', emoji:'⚫', text:'Verlopen'};
+  if(days <= 7) return {cls:'red', emoji:'🔴', text: days === 0 ? 'Vandaag' : `Nog ${days} d.`};
+  if(days <= 30) return {cls:'orange', emoji:'🟠', text:`Nog ${days} d.`};
+  return {cls:'green', emoji:'🟢', text:`Nog ${days} d.`};
+}
+
+function prettyDate(dateString){
+  if(!dateString) return 'Geen datum';
+  const d = new Date(dateString + 'T00:00:00');
+  return new Intl.DateTimeFormat('nl-BE').format(d);
+}
+
+function iconFor(category=''){
+  const c = category.toLowerCase();
+  if(c.includes('pasta')) return '🍝';
+  if(c.includes('zuivel') || c.includes('melk')) return '🥛';
+  if(c.includes('brood') || c.includes('beleg')) return '🥫';
+  if(c.includes('drank')) return '🧃';
+  return '📦';
+}
+
+function saveShopping(){
+  localStorage.setItem(SHOPPING_KEY, JSON.stringify(shoppingList));
+}
+
+function isAlreadyShopping(name){
+  const target = String(name || '').trim().toLowerCase();
+  return shoppingList.some(item => String(item.name || '').trim().toLowerCase() === target);
+}
+
+function addToShoppingList(item){
+  const name = String(item.name || '').trim();
+  if(!name) return false;
+
+  if(isAlreadyShopping(name)){
+    showToast(`${name} staat al op je winkellijst.`);
+    return false;
+  }
+
+  shoppingList.push({
+    name,
+    category: item.category || '',
+    barcode: item.barcode || '',
+    quantity: Math.max(1, Number(item.quantity || 1)),
+    fromStock: !!item.fromStock
+  });
+  saveShopping();
+  renderShopping();
+  updateShoppingCount();
+  showToast(`${name} op je winkellijst geplaatst.`);
+  return true;
+}
+
+function promptShoppingForProduct(product, index){
+  pendingShoppingItem = {
+    name: product.name,
+    category: product.category || '',
+    barcode: product.barcode || '',
+    quantity: 1,
+    fromStock: true
+  };
+  pendingShoppingIndex = index;
+
+  const modal = document.getElementById('shoppingConfirmModal');
+  const text = document.getElementById('shoppingConfirmText');
+  text.textContent = `${product.name} is opgebruikt. Wil je het meteen op je winkellijst plaatsen?`;
+  document.getElementById('shoppingConfirmYes').textContent = 'Ja, op winkellijst';
+  document.getElementById('shoppingConfirmNo').textContent = 'Nee, alleen verwijderen';
+  modal.classList.add('open');
+  modal.setAttribute('aria-hidden','false');
+}
+
+function closeShoppingConfirm(){
+  const modal = document.getElementById('shoppingConfirmModal');
+  modal.classList.remove('open');
+  modal.setAttribute('aria-hidden','true');
+  pendingShoppingItem = null;
+  pendingShoppingIndex = null;
+}
+
+function removePendingProductFromStock(){
+  const index = pendingShoppingIndex;
+  if(index === null || !products[index]){
+    closeShoppingConfirm();
+    return '';
+  }
+
+  const name = products[index].name;
+  products.splice(index, 1);
+  localStorage.setItem(KEY, JSON.stringify(products));
+  render();
+  closeShoppingConfirm();
+  return name;
+}
+
+function handleShoppingConfirmYes(){
+  if(!pendingShoppingItem || pendingShoppingIndex === null){
+    closeShoppingConfirm();
+    return;
+  }
+
+  const item = pendingShoppingItem;
+  const name = item.name;
+
+  if(!isAlreadyShopping(name)){
+    addToShoppingList(item);
+  } else {
+    showToast(`${name} stond al op je winkellijst.`);
+  }
+
+  const removedName = removePendingProductFromStock();
+  if(removedName){
+    showToast(`${removedName} is op je winkellijst geplaatst.`);
+  }
+}
+
+function handleShoppingConfirmNo(){
+  const name = removePendingProductFromStock();
+  if(name){
+    showToast(`${name} uit je voorraad verwijderd.`);
+  }
+}
+
+function renderShopping(){
+  const list = document.getElementById('shoppingList');
+  if(!shoppingList.length){
+    list.innerHTML = `<div class="empty"><div class="empty-icon">🛒</div><strong>Je winkellijst is leeg</strong><br>Voeg iets toe dat je nog moet kopen.</div>`;
+    updateShoppingCount();
+    return;
+  }
+
+  list.innerHTML = shoppingList.map((item,index)=>{
+    const meta = [
+      item.category || '',
+      Number(item.quantity || 1) > 1 ? `Aantal: ${Number(item.quantity || 1)}` : 'Aantal: 1'
+    ].filter(Boolean).join(' · ');
+
+    return `<div class="shopping-item">
+      <input class="shopping-check" type="checkbox" onchange="completeShoppingItem(${index}, this.checked)" title="Aangekocht">
+      <div class="shopping-info">
+        <div class="shopping-name">${escapeHtml(item.name)}</div>
+        <div class="shopping-meta">${escapeHtml(meta)}</div>
+      </div>
+      <div class="shopping-actions">
+        <button class="shopping-add-stock" onclick="restockFromShopping(${index})" title="Na aankoop aan voorraad toevoegen">+ Voorraad</button>
+        <button class="shopping-remove" onclick="removeShoppingItem(${index})" title="Van winkellijst verwijderen">×</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  updateShoppingCount();
+}
+
+function updateShoppingCount(){
+  const el = document.getElementById('shoppingCount');
+  if(el) el.textContent = shoppingList.length;
+}
+
+function removeShoppingItem(index){
+  if(!shoppingList[index]) return;
+  const name = shoppingList[index].name;
+  shoppingList.splice(index,1);
+  saveShopping();
+  renderShopping();
+  showToast(`${name} verwijderd van winkellijst.`);
+}
+
+function completeShoppingItem(index, checked){
+  if(!checked) return;
+  const item = shoppingList[index];
+  if(!item) return;
+
+  const wantsRestock = confirm(`${item.name} is gekocht. Wil je dit product meteen opnieuw aan je voorraad toevoegen?`);
+  if(wantsRestock){
+    restockFromShopping(index);
+  }else{
+    recordMyProduct({name:item.name, barcode:item.barcode||'', category:item.category||''});
+    shoppingList.splice(index,1);
+    saveShopping();
+    renderShopping();
+    renderMyProducts();
+    showToast(`${item.name} van winkellijst afgevinkt.`);
+  }
+}
+
+function restockFromShopping(index){
+  const item = shoppingList[index];
+  if(!item) return;
+
+  pendingRestockIndex = index;
+  document.getElementById('restockProductName').textContent = item.name;
+  document.getElementById('restockExpiry').value = '';
+  document.getElementById('restockQuantity').value = String(Math.max(1, Number(item.quantity || 1)));
+  setOcrStatus('', false, 'restockOcrStatus');
+  const modal = document.getElementById('restockModal');
+  modal.classList.add('open');
+  modal.setAttribute('aria-hidden','false');
+}
+
+function closeRestockModal(){
+  const modal = document.getElementById('restockModal');
+  modal.classList.remove('open');
+  modal.setAttribute('aria-hidden','true');
+  pendingRestockIndex = null;
+}
+
+function saveRestock(){
+  if(pendingRestockIndex === null) return;
+  const item = shoppingList[pendingRestockIndex];
+  if(!item){ closeRestockModal(); return; }
+
+  const expiry = document.getElementById('restockExpiry').value;
+  if(!expiry){ showToast('Voer een vervaldatum in of scan ze.'); return; }
+
+  const amount = Math.max(1, Number(document.getElementById('restockQuantity').value || 1));
+  products.push({
+    name: item.name,
+    barcode: item.barcode || '',
+    expiry,
+    quantity: amount,
+    category: item.category || ''
+  });
+
+  recordMyProduct({
+    name: item.name,
+    barcode: item.barcode || '',
+    category: item.category || ''
+  });
+
+  shoppingList.splice(pendingRestockIndex,1);
+  localStorage.setItem(KEY, JSON.stringify(products));
+  saveShopping();
+  closeRestockModal();
+  render();
+  renderShopping();
+  renderMyProducts();
+  showToast(`${item.name} opnieuw aan je voorraad toegevoegd.`);
+  showScreen('stockScreen');
+}
+
+
+function normalizeMyProductKey(name, barcode=''){
+  const b=String(barcode||'').replace(/\D/g,'');
+  if(b) return 'barcode:' + b;
+  return 'name:' + String(name||'').trim().toLowerCase();
+}
+
+function recordMyProduct(item){
+  const name=String(item?.name||'').trim();
+  if(!name) return;
+  const barcode=String(item?.barcode||'').replace(/\D/g,'');
+  const category=String(item?.category||'').trim();
+  const key=normalizeMyProductKey(name,barcode);
+  const previous=myProducts[key] || {};
+  myProducts[key]={
+    name,
+    barcode: barcode || previous.barcode || '',
+    category: category || previous.category || '',
+    timesBought: Number(previous.timesBought||0)+1,
+    lastBought: new Date().toISOString()
+  };
+  localStorage.setItem(MY_PRODUCTS_KEY, JSON.stringify(myProducts));
+}
+
+function backfillMyProducts(){
+  let changed=false;
+  for(const p of products){
+    const key=normalizeMyProductKey(p.name,p.barcode);
+    if(!myProducts[key]){
+      myProducts[key]={
+        name:String(p.name||'').trim(),
+        barcode:String(p.barcode||'').replace(/\D/g,''),
+        category:String(p.category||'').trim(),
+        timesBought:1,
+        lastBought:null
+      };
+      changed=true;
+    }
+  }
+  if(changed) localStorage.setItem(MY_PRODUCTS_KEY, JSON.stringify(myProducts));
+}
+
+function getMyProductArray(){
+  return Object.values(myProducts).sort((a,b)=>{
+    const at=a.lastBought?new Date(a.lastBought).getTime():0;
+    const bt=b.lastBought?new Date(b.lastBought).getTime():0;
+    if(bt!==at) return bt-at;
+    return String(a.name||'').localeCompare(String(b.name||''),'nl',{sensitivity:'base'});
+  });
+}
+
+function mealIdeasForProduct(item){
+  const n=String(item?.name||'').toLowerCase();
+  const c=String(item?.category||'').toLowerCase();
+  const ideas=[];
+  const add=x=>{if(!ideas.includes(x)) ideas.push(x);};
+  if(n.includes('pannenkoek')) { add('Pannenkoeken met fruit en yoghurt'); add('Hartige pannenkoeken met kaas en groenten'); }
+  if(n.includes('pasta') || c.includes('pasta')) { add('Pasta met tomatensaus en groenten'); add('Pasta met roomsaus, kaas en groenten'); }
+  if(n.includes('rijst') || c.includes('rijst')) { add('Rijstschotel met groenten en kip'); add('Gebakken rijst met ei en groenten'); }
+  if(n.includes('tomaat') || n.includes('tomatensaus')) { add('Pasta bolognese of arrabbiata'); add('Tomatensoep met brood'); }
+  if(n.includes('ei') || c.includes('eieren')) { add('Omelet met groenten en kaas'); add('Gebakken rijst met ei'); }
+  if(n.includes('kaas')) { add('Croque monsieur of toast met kaas'); add('Pasta met kaas en groenten'); }
+  if(n.includes('brood')) { add('Toast met beleg en een ei'); add('Croques met groenten'); }
+  if(ideas.length<3) add(`Een eenvoudige maaltijd rond ${item.name}`);
+  if(ideas.length<3) add('Combineer met groenten, een eiwitbron en een basis zoals rijst, pasta of brood');
+  return ideas.slice(0,3);
+}
+
+function renderMyProducts(){
+  const list=document.getElementById('myProductsList');
+  if(!list) return;
+  const query=String(document.getElementById('myProductsSearch')?.value||'').trim().toLowerCase();
+  const items=getMyProductArray().filter(item=>{
+    if(!query) return true;
+    return String(item.name||'').toLowerCase().includes(query) || String(item.category||'').toLowerCase().includes(query);
+  });
+  if(!items.length){
+    list.innerHTML=`<div class="empty"><div class="empty-icon">⭐</div><strong>Nog geen producten gevonden</strong><br>Producten die je toevoegt aan je voorraad verschijnen hier.</div>`;
+    return;
+  }
+  list.innerHTML=items.map((item,idx)=>{
+    const ideas=mealIdeasForProduct(item);
+    const ideaHtml=ideas.map(x=>`<div>• ${escapeHtml(x)}</div>`).join('');
+    return `<div class="my-product-card">
+      <div class="my-product-main">
+        <div class="my-product-icon">${iconFor(item.category)}</div>
+        <div class="my-product-info">
+          <div class="my-product-name">${escapeHtml(item.name)}</div>
+          <div class="my-product-meta">${escapeHtml(item.category||'Geen categorie')} · ${Number(item.timesBought||1)}× toegevoegd</div>
+        </div>
+      </div>
+      <div class="my-product-actions">
+        <button class="secondary" onclick="addMyProductToShopping(${JSON.stringify(item.name).replace(/</g,'\\u003c')})">Winkellijst</button>
+        <button class="secondary" onclick="addMyProductToStock(${JSON.stringify(item.name).replace(/</g,'\\u003c')})">＋ Voorraad</button>
+        <button class="secondary" onclick="toggleProductInspiration(${idx})">🍽️ Inspiratie</button>
+      </div>
+      <div class="inspiration-box" id="idea_${idx}" style="display:none"><strong>Maaltijdideeën</strong>${ideaHtml}</div>
+    </div>`;
+  }).join('');
+}
+
+function findMyProduct(name){
+  const target=String(name||'').trim().toLowerCase();
+  return getMyProductArray().find(item=>String(item.name||'').trim().toLowerCase()===target) || null;
+}
+
+function addMyProductToShopping(name){
+  const item=findMyProduct(name);
+  if(!item) return;
+  addToShoppingList(item);
+}
+
+function addMyProductToStock(name){
+  const item=findMyProduct(name);
+  if(!item) return;
+  showScreen('addScreen');
+  document.getElementById('productName').value=item.name||'';
+  document.getElementById('barcode').value=item.barcode||'';
+  document.getElementById('barcodeLookup').value=item.barcode||'';
+  document.getElementById('category').value=item.category||'';
+  document.getElementById('expiry').value='';
+  document.getElementById('quantity').value='1';
+  updatePreview();
+  showToast(`${item.name} klaargezet om opnieuw toe te voegen.`);
+}
+
+function toggleProductInspiration(index){
+  const box=document.getElementById(`idea_${index}`);
+  if(box) box.style.display=box.style.display==='none' ? 'block' : 'none';
+}
+
+
+async function lookupProductForShopping(code){
+  const barcode=String(code||'').replace(/\D/g,'');
+  if(!barcode){ showToast('Geef een geldige barcode in.'); return; }
+  showToast('Product wordt opgezocht…');
+
+  const known=findKnownProduct(barcode);
+  if(known){
+    const added=addToShoppingList(known);
+    if(added){ showToast(`${known.name} aan je winkellijst toegevoegd.`); }
+    return;
+  }
+
+  try{
+    const result=await fetchOpenFoodFactsProduct(barcode);
+    if(result){
+      const p=result.product;
+      const name=p.product_name_nl || p.product_name || p.abbreviated_product_name || '';
+      const category=String(p.categories||'').split(',')[0].trim();
+      const brand=p.brands||'';
+      if(name){
+        const item={name,barcode:result.code||barcode,category};
+        saveKnownProduct(item.barcode,item);
+        addToShoppingList(item);
+        showToast(`${name} aan je winkellijst toegevoegd.`);
+        return;
+      }
+    }
+  }catch(err){ console.error(err); }
+
+  const manualName=prompt('Product niet automatisch gevonden. Geef de productnaam in:');
+  if(!manualName || !manualName.trim()) return;
+  const item={name:manualName.trim(),barcode};
+  saveKnownProduct(barcode,item);
+  addToShoppingList(item);
+  showToast(`${item.name} onthouden en aan je winkellijst toegevoegd.`);
+}
+
+function addManualShoppingItem(){
+  const input = document.getElementById('shoppingInput');
+  const name = input.value.trim();
+  if(!name){
+    showToast('Vul een productnaam in.');
+    return;
+  }
+  if(addToShoppingList({name})){
+    input.value = '';
+    input.focus();
+  }
+}
+
+
+function getSortedProducts(){
+  return products.map((product,index)=>({product,index})).sort((a,b)=>{
+    const pa=a.product, pb=b.product;
+    if(currentSort==='name_asc' || currentSort==='name_desc'){
+      const av=String(pa.name||'').localeCompare(String(pb.name||''),'nl',{sensitivity:'base'});
+      return currentSort==='name_asc' ? av : -av;
+    }
+    const ad=daysUntil(pa.expiry);
+    const bd=daysUntil(pb.expiry);
+    const at=ad===null ? Number.MAX_SAFE_INTEGER : ad;
+    const bt=bd===null ? Number.MAX_SAFE_INTEGER : bd;
+    return currentSort==='expiry_asc' ? at-bt : bt-at;
+  });
+}
+
+function render(){
+  const soon = products.filter(p => {
+    const d = daysUntil(p.expiry);
+    return d !== null && d >= 0 && d <= 7;
+  }).length;
+  const expired = products.filter(p => {
+    const d = daysUntil(p.expiry);
+    return d !== null && d < 0;
+  }).length;
+
+  document.getElementById('totalCount').textContent = products.reduce((sum,p)=>sum + Number(p.quantity||1),0);
+  document.getElementById('soonCount').textContent = soon;
+  document.getElementById('expiredCount').textContent = expired;
+
+  const sortSelect=document.getElementById('sortSelect');
+  if(sortSelect) sortSelect.value=currentSort;
+
+  const list = document.getElementById('productList');
+  if(!products.length){
+    list.innerHTML = `<div class="empty"><div class="empty-icon">🗄️</div><strong>Je kast is nog leeg</strong><br>Voeg je eerste product toe.</div>`;
+    return;
+  }
+
+  list.innerHTML = getSortedProducts().map(({product:p,index})=>{
+    const s = statusFor(p.expiry);
+    return `<div class="product-card">
+      <div class="product-icon">${iconFor(p.category)}</div>
+      <div class="product-info">
+        <div class="product-name">${escapeHtml(p.name || 'Onbekend product')}</div>
+        <div class="product-meta">${escapeHtml(p.category || 'Geen categorie')} · Houdbaar tot ${prettyDate(p.expiry)}</div>
+        <span class="status ${s.cls}">${s.emoji} ${s.text}</span>
+      </div>
+      <div class="qty-control" aria-label="Aantal aanpassen">
+        <button class="qty-btn" onclick="changeQuantity(${index}, -1)" title="Aantal verminderen">−</button>
+        <span class="qty-value">${Number(p.quantity||1)}</span>
+        <button class="qty-btn" onclick="changeQuantity(${index}, 1)" title="Aantal verhogen">＋</button>
+      </div>
+      <button class="secondary" style="padding:8px 10px" onclick="removeProduct(${index})" title="Product verwijderen">×</button>
+    </div>`;
+  }).join('');
+}
+
+function escapeHtml(value){
+  return String(value).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[s]));
+}
+
+function save(){
+  const name = document.getElementById('productName').value.trim();
+  const barcode = document.getElementById('barcode').value.trim();
+  const expiry = document.getElementById('expiry').value;
+  const quantity = Math.max(1, Number(document.getElementById('quantity').value || 1));
+  const category = document.getElementById('category').value.trim();
+
+  if(!name){ showToast('Vul eerst een productnaam in.'); return; }
+  if(!expiry){ showToast('Kies een vervaldatum.'); return; }
+
+  products.push({name, barcode, expiry, quantity, category});
+  recordMyProduct({name, barcode, category});
+  localStorage.setItem(KEY, JSON.stringify(products));
+  renderMyProducts();
+  showToast('Product toegevoegd aan je kast.');
+  clearForm();
+  showScreen('stockScreen');
+  render();
+}
+
+function changeQuantity(index, delta){
+  const product = products[index];
+  if(!product) return;
+
+  const current = Math.max(0, Number(product.quantity || 1));
+  const next = current + delta;
+
+  if(next <= 0){
+    if(isAlreadyShopping(product.name)){
+      products.splice(index, 1);
+      localStorage.setItem(KEY, JSON.stringify(products));
+      render();
+      showToast(`${product.name} was opgebruikt en stond al op je winkellijst.`);
+      return;
+    }
+
+    promptShoppingForProduct(product, index);
+    return;
+  }
+
+  product.quantity = next;
+  localStorage.setItem(KEY, JSON.stringify(products));
+  render();
+  showToast(`Aantal aangepast naar ${next}.`);
+}
+
+function removeProduct(index){
+  if(!confirm('Dit product uit je voorraad verwijderen?')) return;
+  products.splice(index,1);
+  localStorage.setItem(KEY, JSON.stringify(products));
+  render();
+  showToast('Product verwijderd.');
+}
+
+function clearForm(){
+  document.getElementById('productName').value='';
+  document.getElementById('barcode').value='';
+  document.getElementById('barcodeLookup').value='';
+  document.getElementById('productHit').classList.remove('show');
+  document.getElementById('expiry').value='';
+  document.getElementById('quantity').value='1';
+  document.getElementById('category').value='';
+  document.getElementById('previewBox').textContent='Vul een vervaldatum in om de kleurstatus te zien.';
+}
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active', b.dataset.screen===id));
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+function updatePreview(){
+  const expiry = document.getElementById('expiry').value;
+  const box = document.getElementById('previewBox');
+  if(!expiry){ box.textContent='Vul een vervaldatum in om de kleurstatus te zien.'; return; }
+  const s=statusFor(expiry);
+  box.innerHTML=`Status: <strong>${s.emoji} ${s.text}</strong> · Vervaldatum: ${prettyDate(expiry)}`;
+}
+
+async function loadExpiryOcrWorker(){
+  if(expiryOcrWorker) return expiryOcrWorker;
+  if(!window.Tesseract) throw new Error('OCR-bibliotheek kon niet worden geladen.');
+  setOcrStatus('OCR wordt voorbereid…');
+  expiryOcrWorker = await Tesseract.createWorker('eng', 1, {
+    logger: m => {
+      if(m && m.status && typeof m.progress==='number'){
+        const pct=Math.round(m.progress*100);
+        setOcrStatus(`${m.status} ${pct}%`);
+      }
+    }
+  });
+  return expiryOcrWorker;
+}
+
+function setOcrStatus(text, show=true, elementId='ocrStatus'){
+  const el=document.getElementById(elementId);
+  if(!el) return;
+  el.textContent=text;
+  el.classList.toggle('show',show);
+}
+
+function normalizeOcrText(text){
+  return String(text||'')
+    .toUpperCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[—–]/g,'-');
+}
+
+function normalizeNumericOcrText(text){
+  return normalizeOcrText(text)
+    .replace(/[O]/g,'0')
+    .replace(/[IIL]/g,'1')
+    .replace(/[S]/g,'5')
+    .replace(/[B]/g,'8');
+}
+
+function dateFromParts(d,m,y){
+  d=String(d).padStart(2,'0');
+  m=String(m).padStart(2,'0');
+  if(String(y).length===2) y=(Number(y)<50?'20':'19')+y;
+  y=String(y);
+  const iso=`${y}-${m}-${d}`;
+  const dt=new Date(iso+'T00:00:00');
+  if(dt.getFullYear()===Number(y) && dt.getMonth()+1===Number(m) && dt.getDate()===Number(d)) return iso;
+  return null;
+}
+
+function extractExpiryDate(text){
+  const raw=normalizeOcrText(text).replace(/[^A-Z0-9\s./:-]/g,' ');
+  const numeric=normalizeNumericOcrText(raw);
+  const months={
+    JAN:1, JANUARI:1, FEB:2, FEBRUARI:2, MAR:3, MRT:3, MAART:3, APR:4, APRIL:4,
+    MEI:5, MAY:5, JUN:6, JUNI:6, JUL:7, JULI:7, AUG:8, AUGUSTUS:8,
+    SEP:9, SEPT:9, SEPTEMBER:9, OKT:10, OCT:10, OKTOBER:10, NOV:11, NOVEMBER:11,
+    DEC:12, DECEMBER:12
+  };
+
+  const candidates=[];
+  const add=(iso)=>{ if(iso && !candidates.includes(iso)) candidates.push(iso); };
+
+  // ISO / year-first: 2026-10-01, 2026.10.01, 2026 10 01
+  for(const m of numeric.matchAll(/\b(20\d{2})[-./ ](\d{1,2})[-./ ](\d{1,2})\b/g)){
+    add(dateFromParts(m[3],m[2],m[1]));
+  }
+
+  // Day-month-year: 01/10/2026, 01.10.26, 01-10-2026
+  for(const m of numeric.matchAll(/\b(\d{1,2})[-./ ](\d{1,2})[-./ ](20\d{2}|\d{2})\b/g)){
+    add(dateFromParts(m[1],m[2],m[3]));
+  }
+
+  // Month-name forms: 01 NOV 2026, 01 NOVEMBER 2026, 01 NOV 26
+  const monthPattern=Object.keys(months).sort((a,b)=>b.length-a.length).join('|');
+  const reDayMonth=new RegExp('\\b(\\d{1,2})[\\s./-]+(' + monthPattern + ')[\\s./-]+(20\\d{2}|\\d{2})\\b','g');
+  for(const m of raw.matchAll(reDayMonth)) add(dateFromParts(m[1],months[m[2]],m[3]));
+
+  // Month-name first: NOV 01 2026
+  const reMonthDay=new RegExp('\\b(' + monthPattern + ')[\\s./-]+(\\d{1,2})[\\s.,/-]+(20\\d{2}|\\d{2})\\b','g');
+  for(const m of raw.matchAll(reMonthDay)) add(dateFromParts(m[2],months[m[1]],m[3]));
+
+  // Compact numeric forms occasionally printed on packaging: 011026 / 01102026
+  for(const m of numeric.matchAll(/\b(\d{2})(\d{2})(20\d{2}|\d{2})\b/g)){
+    add(dateFromParts(m[1],m[2],m[3]));
+  }
+
+  // Prefer a future/recent date, which is usually the best expiry candidate on a package.
+  const today=todayAtMidnight().getTime();
+  const scored=candidates.map(iso=>({iso,time:new Date(iso+'T00:00:00').getTime()}));
+  const future=scored.filter(x=>x.time>=today && x.time<=today+3660*86400000).sort((a,b)=>a.time-b.time);
+  return (future[0] || scored[0])?.iso || null;
+}
+
+async function prepareExpiryImage(file){
+  return new Promise((resolve,reject)=>{
+    const img=new Image();
+    img.onload=()=>{
+      const max=1800;
+      const scale=Math.min(1,max/Math.max(img.width,img.height));
+      const canvas=document.createElement('canvas');
+      canvas.width=Math.max(1,Math.round(img.width*scale));
+      canvas.height=Math.max(1,Math.round(img.height*scale));
+      const ctx=canvas.getContext('2d',{willReadFrequently:true});
+      ctx.drawImage(img,0,0,canvas.width,canvas.height);
+      const data=ctx.getImageData(0,0,canvas.width,canvas.height);
+      for(let i=0;i<data.data.length;i+=4){
+        const g=(data.data[i]*0.299)+(data.data[i+1]*0.587)+(data.data[i+2]*0.114);
+        const boosted=Math.max(0,Math.min(255,(g-128)*1.7+128));
+        data.data[i]=data.data[i+1]=data.data[i+2]=boosted;
+      }
+      ctx.putImageData(data,0,0);
+      canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('Kon foto niet voorbereiden.')),'image/jpeg',0.9);
+    };
+    img.onerror=()=>reject(new Error('Foto kon niet worden geladen.'));
+    img.src=URL.createObjectURL(file);
+  });
+}
+
+async function scanExpiryPhoto(file, targetId='expiry', statusId='ocrStatus'){
+  if(!file) return;
+  try{
+    setOcrStatus('Foto wordt voorbereid…',true,statusId);
+    const worker=await loadExpiryOcrWorker();
+    const prepared=await prepareExpiryImage(file);
+    setOcrStatus('Vervaldatum wordt gelezen…',true,statusId);
+    const result=await worker.recognize(prepared);
+    const text=result?.data?.text || '';
+    const date=extractExpiryDate(text);
+    if(date){
+      document.getElementById(targetId).value=date;
+      if(targetId==='expiry') updatePreview();
+      setOcrStatus(`Gevonden: ${prettyDate(date)}. Controleer de datum even.`,true,statusId);
+      showToast('Vervaldatum herkend. Controleer ze even.');
+    }else{
+      setOcrStatus('Geen duidelijke datum gevonden. Maak een scherpe close-up foto van alleen de vervaldatum en probeer opnieuw. Ondersteund worden o.a. 01/10/2026, 01.10.26 en 01 NOV 2026.',true,statusId);
+      showToast('Vervaldatum niet herkend.');
+    }
+  }catch(err){
+    console.error(err);
+    setOcrStatus('De foto kon niet automatisch worden gelezen. Je kunt de datum hieronder handmatig invullen.',true,statusId);
+    showToast('OCR kon niet worden uitgevoerd.');
+  }
+}
+
+function fillDemo(which){
+  if(which==='nutella'){
+    const future=new Date(); future.setDate(future.getDate()+18);
+    document.getElementById('productName').value='Nutella';
+    document.getElementById('barcode').value='3017620422003';
+    document.getElementById('category').value='Broodbeleg';
+    document.getElementById('expiry').value=future.toISOString().slice(0,10);
+  } else {
+    const future=new Date(); future.setDate(future.getDate()+120);
+    document.getElementById('productName').value='Spaghetti';
+    document.getElementById('barcode').value='8001250123456';
+    document.getElementById('category').value='Pasta';
+    document.getElementById('expiry').value=future.toISOString().slice(0,10);
+  }
+  updatePreview();
+  showToast('Demo-product ingevuld.');
+}
+
+document.getElementById('scanShoppingButton').addEventListener('click', ()=>startScanner('shopping'));
+document.getElementById('shoppingBarcodeButton').addEventListener('click', ()=>{
+  lookupProductForShopping(document.getElementById('shoppingBarcodeInput').value);
+});
+document.getElementById('shoppingBarcodeInput').addEventListener('keydown', e=>{
+  if(e.key==='Enter') lookupProductForShopping(e.target.value);
+});
+document.getElementById('myProductsSearch').addEventListener('input', renderMyProducts);
+
+document.getElementById('restockCancel').addEventListener('click', closeRestockModal);
+document.getElementById('restockSave').addEventListener('click', saveRestock);
+document.getElementById('restockModal').addEventListener('click', e=>{
+  if(e.target.id==='restockModal') closeRestockModal();
+});
+document.getElementById('scanRestockExpiryButton').addEventListener('click', ()=>{
+  document.getElementById('restockExpiryPhoto').click();
+});
+document.getElementById('restockExpiryPhoto').addEventListener('change', e=>{
+  const file=e.target.files?.[0];
+  if(file) scanExpiryPhoto(file,'restockExpiry','restockOcrStatus');
+  e.target.value='';
+});
+
+document.getElementById('addShoppingButton').addEventListener('click', addManualShoppingItem);
+document.getElementById('shoppingInput').addEventListener('keydown', e=>{
+  if(e.key === 'Enter') addManualShoppingItem();
+});
+document.getElementById('shoppingConfirmYes').addEventListener('click', handleShoppingConfirmYes);
+document.getElementById('shoppingConfirmNo').addEventListener('click', handleShoppingConfirmNo);
+document.getElementById('shoppingConfirmModal').addEventListener('click', e=>{
+  if(e.target.id === 'shoppingConfirmModal') closeShoppingConfirm();
+});
+
+document.getElementById('saveButton').addEventListener('click', save);
+document.getElementById('clearButton').addEventListener('click', clearForm);
+document.getElementById('expiry').addEventListener('input', updatePreview);
+document.getElementById('sortSelect').addEventListener('change', e=>{
+  currentSort=e.target.value;
+  localStorage.setItem('voorraadkast-sort-v1', currentSort);
+  render();
+});
+
+document.getElementById('scanExpiryButton').addEventListener('click', ()=>{
+  document.getElementById('expiryPhoto').click();
+});
+document.getElementById('expiryPhoto').addEventListener('change', e=>{
+  const file=e.target.files?.[0];
+  if(file) scanExpiryPhoto(file);
+  e.target.value='';
+});
+
+
+let scannerStream = null;
+let scannerTimer = null;
+let scannerDetector = null;
+
+function normalizeBarcodeVariants(value){
+  const raw = String(value || '').replace(/\D/g,'');
+  if(!raw) return [];
+
+  const variants = [];
+  const add = v => { if(v && !variants.includes(v)) variants.push(v); };
+  add(raw);
+
+  // Open Food Facts normalizes common EAN/UPC variants. We also try the most
+  // common padded/unpadded forms because scanners can add or remove leading 0s.
+  if(raw.length === 12) add('0' + raw);
+  if(raw.length === 13 && raw.startsWith('0')) add(raw.slice(1));
+  if(raw.length === 8) add(raw.padStart(13,'0'));
+  if(raw.length < 13) add(raw.padStart(13,'0'));
+
+  return variants;
+}
+
+function setBarcode(value){
+  const barcode = String(value || '').replace(/\D/g,'');
+  document.getElementById('barcode').value = barcode;
+  document.getElementById('barcodeLookup').value = barcode;
+}
+
+function saveKnownProduct(barcode, product){
+  const code = String(barcode || '').replace(/\D/g,'');
+  const name = String(product?.name || '').trim();
+  if(!code || !name) return;
+
+  knownProducts[code] = {
+    name,
+    category: String(product?.category || '').trim(),
+    brand: String(product?.brand || '').trim(),
+    barcode: code,
+    savedAt: new Date().toISOString()
+  };
+  localStorage.setItem(PRODUCT_DB_KEY, JSON.stringify(knownProducts));
+}
+
+function findKnownProduct(barcode){
+  for(const code of normalizeBarcodeVariants(barcode)){
+    if(knownProducts[code]) return knownProducts[code];
+  }
+  return null;
+}
+
+function showProductHit(titleText, metaText, showRemember=true){
+  document.getElementById('productHitTitle').textContent = titleText;
+  document.getElementById('productHitMeta').textContent = metaText;
+  document.getElementById('productHit').classList.add('show');
+  const button = document.getElementById('rememberProductButton');
+  if(button) button.style.display = showRemember ? 'block' : 'none';
+}
+
+async function fetchOpenFoodFactsProduct(barcode){
+  const variants = normalizeBarcodeVariants(barcode);
+  let lastError = null;
+
+  for(const code of variants){
+    // Current Open Food Facts API (v3), with a legacy v2 fallback for compatibility.
+    const urls = [
+      `https://world.openfoodfacts.org/api/v3/product/${encodeURIComponent(code)}?fields=code,product_name,product_name_nl,brands,categories,image_front_url&lc=nl&cc=be`,
+      `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json?fields=code,product_name,product_name_nl,brands,categories,image_front_url`
+    ];
+
+    for(const url of urls){
+      try{
+        const response = await fetch(url, {headers:{'Accept':'application/json'}});
+        if(!response.ok){
+          lastError = new Error('HTTP ' + response.status);
+          continue;
+        }
+        const data = await response.json();
+        const product = data.product || null;
+        const found = product && (
+          data.status === 1 ||
+          data.status === 'success' ||
+          data.result?.status === 'success' ||
+          data.code === product.code ||
+          product.code
+        );
+        if(found){
+          return {product, code: String(product.code || code)};
+        }
+      }catch(err){
+        lastError = err;
+      }
+    }
+  }
+
+  if(lastError) throw lastError;
+  return null;
+}
+
+function applyProductData(product, barcode, sourceLabel){
+  const name = product.product_name_nl || product.product_name || product.abbreviated_product_name || '';
+  const brand = product.brands || '';
+  const category = String(product.categories || '').split(',')[0].trim();
+
+  document.getElementById('productName').value = name;
+  document.getElementById('category').value = category;
+  setBarcode(product.code || barcode);
+
+  if(name){
+    saveKnownProduct(product.code || barcode, {name, category, brand});
+  }
+
+  showProductHit(
+    name || 'Product gevonden',
+    [brand, category, sourceLabel].filter(Boolean).join(' · '),
+    true
+  );
+
+  showToast('Product herkend.');
+}
+
+async function lookupProduct(code){
+  const barcode = String(code || '').replace(/\D/g,'');
+  if(!barcode){
+    showToast('Geef een geldige barcode in.');
+    return;
+  }
+
+  setBarcode(barcode);
+  showToast('Product wordt opgezocht…');
+
+  const hit = document.getElementById('productHit');
+  hit.classList.remove('show');
+
+  // First use the app's own product memory. This means a product you enter once
+  // can be recognized again even when the external database does not know it.
+  const known = findKnownProduct(barcode);
+  if(known){
+    applyProductData(known, known.barcode || barcode, 'Opgeslagen in Voorraadkast');
+    return;
+  }
+
+  try{
+    const result = await fetchOpenFoodFactsProduct(barcode);
+    if(!result){
+      showProductHit(
+        'Product nog niet bekend',
+        'De barcode is correct gelezen. Vul de productnaam in; met “Onthouden voor volgende keer” leert Voorraadkast dit product bij.',
+        true
+      );
+      document.getElementById('productName').focus();
+      showToast('Barcode gelezen, product nog niet gevonden.');
+      return;
+    }
+
+    applyProductData(result.product, result.code || barcode, 'Open Food Facts');
+  }catch(err){
+    console.error(err);
+    showProductHit(
+      'Productgegevens konden niet worden opgehaald',
+      'De barcode is wel gelezen. Controleer je internetverbinding of vul de naam handmatig in en onthoud het product voor de volgende keer.',
+      true
+    );
+    document.getElementById('productName').focus();
+    showToast('Barcode gelezen.');
+  }
+}
+
+function rememberCurrentProduct(){
+  const barcode = document.getElementById('barcode').value.trim();
+  const name = document.getElementById('productName').value.trim();
+  const category = document.getElementById('category').value.trim();
+  if(!barcode || !name){
+    showToast('Vul eerst de barcode en productnaam in.');
+    return;
+  }
+  saveKnownProduct(barcode, {name, category});
+  showProductHit(name, [category, 'Opgeslagen in Voorraadkast'].filter(Boolean).join(' · '), true);
+  showToast('Product onthouden.');
+}
+
+function closeScanner(){
+  if(scannerTimer) cancelAnimationFrame(scannerTimer);
+  scannerTimer = null;
+  shoppingScannerActive=false;
+  if(scannerStream){
+    scannerStream.getTracks().forEach(track => track.stop());
+    scannerStream = null;
+  }
+  const video = document.getElementById('scannerVideo');
+  video.srcObject = null;
+  document.getElementById('scannerModal').classList.remove('open');
+  document.getElementById('scannerModal').setAttribute('aria-hidden','true');
+}
+
+async function startScanner(mode='stock'){
+  shoppingScannerActive = mode === 'shopping';
+  const modal = document.getElementById('scannerModal');
+  const video = document.getElementById('scannerVideo');
+  const msg = document.getElementById('scannerMessage');
+
+  if(!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    showToast('Cameratoegang vereist een veilige pagina (HTTPS).');
+    return;
+  }
+
+  if(!('BarcodeDetector' in window)){
+    showToast('Deze browser ondersteunt de ingebouwde barcodescanner niet. Gebruik de handmatige barcode.');
+    document.getElementById(shoppingScannerActive ? 'shoppingBarcodeInput' : 'barcodeLookup').focus();
+    return;
+  }
+
+  modal.classList.add('open');
+  modal.setAttribute('aria-hidden','false');
+  msg.textContent = shoppingScannerActive ? 'Camera voor winkellijst wordt gestart…' : 'Camera wordt gestart…';
+
+  try{
+    const formats = ['ean_13','ean_8','upc_a','upc_e','code_128','code_39','itf'];
+    let supported = formats;
+    try{
+      const available = await BarcodeDetector.getSupportedFormats();
+      supported = formats.filter(f => available.includes(f));
+    }catch(_){}
+
+    scannerDetector = new BarcodeDetector({formats:supported.length ? supported : undefined});
+    scannerStream = await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:{ideal:'environment'}, width:{ideal:1280}, height:{ideal:720}},
+      audio:false
+    });
+
+    video.srcObject = scannerStream;
+    await video.play();
+    msg.textContent = shoppingScannerActive ? 'Richt de camera op de barcode van het product.' : 'Richt de camera op de barcode.';
+
+    const scanLoop = async ()=>{
+      if(!scannerStream) return;
+      try{
+        const codes = await scannerDetector.detect(video);
+        if(codes.length){
+          const code = codes[0].rawValue;
+          const wasShoppingScan = shoppingScannerActive;
+          closeScanner();
+          if(wasShoppingScan){
+            await lookupProductForShopping(code);
+          }else{
+            await lookupProduct(code);
+          }
+          return;
+        }
+      }catch(err){
+        // Blijf proberen; tijdelijke detectiefouten zijn normaal.
+      }
+      scannerTimer = requestAnimationFrame(scanLoop);
+    };
+    scannerTimer = requestAnimationFrame(scanLoop);
+  }catch(err){
+    console.error(err);
+    msg.textContent = 'De camera kon niet worden gestart.';
+    showToast('Cameratoegang geweigerd of niet beschikbaar.');
+  }
+}
+
+document.getElementById('scanButton').addEventListener('click', startScanner);
+document.getElementById('closeScanner').addEventListener('click', closeScanner);
+document.getElementById('stopScanner').addEventListener('click', closeScanner);
+
+document.getElementById('lookupButton').addEventListener('click', ()=>{
+  lookupProduct(document.getElementById('barcodeLookup').value);
+});
+document.getElementById('rememberProductButton').addEventListener('click', rememberCurrentProduct);
+
+document.getElementById('barcodeLookup').addEventListener('keydown', e=>{
+  if(e.key === 'Enter') lookupProduct(e.target.value);
+});
+
+document.getElementById('barcode').addEventListener('change', e=>{
+  const value = e.target.value.trim();
+  if(value) document.getElementById('barcodeLookup').value = value;
+});
+
+
+document.getElementById('addFromStock').addEventListener('click', ()=>showScreen('addScreen'));
+document.getElementById('quickAdd').addEventListener('click', ()=>showScreen('addScreen'));
+document.querySelectorAll('.nav-btn').forEach(btn => btn.addEventListener('click', ()=>showScreen(btn.dataset.screen)));
+
+backfillMyProducts();
+render();
+renderShopping();
+renderMyProducts();
+window.addEventListener('beforeunload', async ()=>{ if(expiryOcrWorker){ try{ await expiryOcrWorker.terminate(); }catch(_){ } } });
+</script>
+
+
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
