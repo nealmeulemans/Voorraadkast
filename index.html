@@ -1093,6 +1093,7 @@ function fillDemo(which){
   showToast('Demo-product ingevuld.');
 }
 
+document.getElementById('scanButton').addEventListener('click', ()=>startScanner('stock'));
 document.getElementById('scanShoppingButton').addEventListener('click', ()=>startScanner('shopping'));
 document.getElementById('shoppingBarcodeButton').addEventListener('click', ()=>{
   lookupProductForShopping(document.getElementById('shoppingBarcodeInput').value);
