@@ -52,10 +52,9 @@
   .sort-row{display:flex;align-items:center;gap:8px;margin:0 0 12px}
   .sort-row label{margin:0;font-size:13px;color:var(--muted);font-weight:800;white-space:nowrap}
   .sort-select{flex:1;width:auto;padding:11px 12px;border:1px solid #ccd6d0;border-radius:12px;background:white;color:var(--text);font-weight:700}
-  .expiry-scan{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center}
+  .expiry-scan{display:grid;grid-template-columns:minmax(0,1fr) 44px;gap:8px;align-items:center}
   .expiry-scan input{min-width:0;width:100%;height:46px}
-  .expiry-scan button{white-space:nowrap;min-height:46px;padding:10px 12px}
-  @media(max-width:360px){.expiry-scan{grid-template-columns:1fr}.expiry-scan button{width:100%}}
+  .expiry-scan button{width:44px;min-width:44px;height:46px;padding:0;display:flex;align-items:center;justify-content:center;font-size:20px}
   .ocr-status{display:none;margin-top:8px;padding:10px 12px;border-radius:12px;background:#eef6f0;border:1px solid #cee0d2;color:var(--muted);font-size:12px}
   .ocr-status.show{display:block}
   .product-card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px;margin-bottom:10px;display:flex;gap:12px;align-items:center;box-shadow:var(--shadow)}
@@ -83,7 +82,7 @@
   .preview{margin-top:12px;padding:12px;background:#f5f7f5;border-radius:12px;font-size:13px;color:var(--muted)}
   .demo-row{display:flex;gap:8px;margin-top:10px}
   .demo-row button{flex:1;border:1px solid var(--line);background:white;border-radius:12px;padding:10px;cursor:pointer}
-  .bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);max-width:480px;width:100%;background:rgba(255,255,255,.96);backdrop-filter:blur(12px);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(3,minmax(0,1fr));padding:8px 5px}
+  .bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);max-width:480px;width:100%;background:rgba(255,255,255,.96);backdrop-filter:blur(12px);border-top:1px solid var(--line);display:grid;grid-template-columns:1fr 1.1fr 1.05fr;padding:8px 5px}
   .nav-btn{border:0;background:transparent;padding:8px 5px;border-radius:12px;color:var(--muted);font-weight:800;cursor:pointer;font-size:13px}
   .nav-btn.active{background:#edf4ee;color:var(--accent)}
   .toast{position:fixed;left:50%;bottom:82px;transform:translateX(-50%) translateY(20px);background:#1f2a24;color:white;padding:11px 15px;border-radius:999px;font-size:13px;opacity:0;pointer-events:none;transition:.22s;z-index:20}
@@ -147,8 +146,9 @@
   .my-product-actions button{flex:1;min-width:100px;padding:10px;font-size:12px}
   .inspiration-box{margin-top:10px;background:#fff8e8;border:1px solid #efdfb3;border-radius:14px;padding:12px;font-size:13px}
   .inspiration-box strong{display:block;margin-bottom:5px}
-  .restock-grid{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end;margin-top:14px}
-  .restock-grid button{white-space:nowrap}
+  .restock-grid{display:grid;grid-template-columns:minmax(0,1fr) 44px;gap:8px;align-items:center;margin-top:14px}
+  .restock-grid input{min-width:0;width:100%;height:46px}
+  .restock-grid button{width:44px;min-width:44px;height:46px;padding:0;display:flex;align-items:center;justify-content:center;font-size:20px}
   .restock-modal-title{font-size:18px;font-weight:800;margin-bottom:4px}
 
 
@@ -160,6 +160,7 @@
 
 </style>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/umd/zxing-browser.min.js"></script>
 </head>
 <body>
 <div class="app">
@@ -241,11 +242,6 @@
           </div>
         </div>
         <div style="margin-top:9px;font-size:11px;color:var(--muted)">Barcodegegevens komen eerst uit je eigen Voorraadkast-geheugen en daarna uit Open Food Facts. Onbekende producten kun je één keer zelf benoemen en onthouden.</div>
-        <div class="demo-row">
-          <button type="button" onclick="fillDemo('nutella')">Demo Nutella</button>
-          <button type="button" onclick="fillDemo('pasta')">Demo Pasta</button>
-        </div>
-
         <label for="productName">Productnaam</label>
         <input id="productName" placeholder="bv. Nutella" autocomplete="off">
 
@@ -255,7 +251,7 @@
         <label for="expiry">Vervaldatum</label>
         <div class="expiry-scan">
           <input id="expiry" type="date">
-          <button class="secondary" id="scanExpiryButton" type="button">📷 Scan datum</button>
+          <button class="secondary" id="scanExpiryButton" type="button" aria-label="Datum fotograferen" title="Datum fotograferen">📷</button>
         </div>
         <input id="expiryPhoto" type="file" accept="image/*" capture="environment" style="display:none">
         <div class="ocr-status" id="ocrStatus"></div>
@@ -295,7 +291,7 @@
     <label for="restockExpiry">Vervaldatum</label>
     <div class="restock-grid">
       <input id="restockExpiry" type="date">
-      <button class="secondary" id="scanRestockExpiryButton" type="button">📷 Scan datum</button>
+      <button class="secondary" id="scanRestockExpiryButton" type="button" aria-label="Datum fotograferen" title="Datum fotograferen">📷</button>
     </div>
     <input id="restockExpiryPhoto" type="file" accept="image/*" capture="environment" style="display:none">
     <div class="ocr-status" id="restockOcrStatus"></div>
@@ -917,6 +913,7 @@ function clearForm(){
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active', b.dataset.screen===id));
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
@@ -1059,17 +1056,9 @@ async function scanExpiryPhoto(file, targetId='expiry', statusId='ocrStatus'){
     const worker=await loadExpiryOcrWorker();
     const prepared=await prepareExpiryImage(file);
     setOcrStatus('Vervaldatum wordt gelezen…',true,statusId);
-    let result=await worker.recognize(prepared);
-    let text=result?.data?.text || '';
-    let date=extractExpiryDate(text);
-    // Sommige iPhone-foto's verliezen detail door contrastbewerking. Probeer
-    // daarom ook de originele foto als de eerste herkenning geen datum oplevert.
-    if(!date){
-      setOcrStatus('Nog even proberen met de originele foto…',true,statusId);
-      result=await worker.recognize(file);
-      text=result?.data?.text || '';
-      date=extractExpiryDate(text);
-    }
+    const result=await worker.recognize(prepared);
+    const text=result?.data?.text || '';
+    const date=extractExpiryDate(text);
     if(date){
       document.getElementById(targetId).value=date;
       if(targetId==='expiry') updatePreview();
@@ -1081,7 +1070,7 @@ async function scanExpiryPhoto(file, targetId='expiry', statusId='ocrStatus'){
     }
   }catch(err){
     console.error(err);
-    setOcrStatus('Automatisch lezen lukte niet. Controleer je internetverbinding en probeer een scherpe close-up; je kunt de datum ook handmatig invullen.',true,statusId);
+    setOcrStatus('De foto kon niet automatisch worden gelezen. Je kunt de datum hieronder handmatig invullen.',true,statusId);
     showToast('OCR kon niet worden uitgevoerd.');
   }
 }
@@ -1159,6 +1148,7 @@ document.getElementById('expiryPhoto').addEventListener('change', e=>{
 let scannerStream = null;
 let scannerTimer = null;
 let scannerDetector = null;
+let scannerControls = null;
 
 function normalizeBarcodeVariants(value){
   const raw = String(value || '').replace(/\D/g,'');
@@ -1340,11 +1330,16 @@ function closeScanner(){
   if(scannerTimer) cancelAnimationFrame(scannerTimer);
   scannerTimer = null;
   shoppingScannerActive=false;
+  if(scannerControls){
+    try{ scannerControls.stop(); }catch(_){ }
+    scannerControls = null;
+  }
   if(scannerStream){
     scannerStream.getTracks().forEach(track => track.stop());
     scannerStream = null;
   }
   const video = document.getElementById('scannerVideo');
+  video.pause();
   video.srcObject = null;
   document.getElementById('scannerModal').classList.remove('open');
   document.getElementById('scannerModal').setAttribute('aria-hidden','true');
@@ -1355,69 +1350,82 @@ async function startScanner(mode='stock'){
   const modal = document.getElementById('scannerModal');
   const video = document.getElementById('scannerVideo');
   const msg = document.getElementById('scannerMessage');
+  const targetShopping = shoppingScannerActive;
 
   if(!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
     showToast('Cameratoegang vereist een veilige pagina (HTTPS).');
     return;
   }
 
-  if(!('BarcodeDetector' in window)){
-    showToast('Deze browser ondersteunt de ingebouwde barcodescanner niet. Gebruik de handmatige barcode.');
-    document.getElementById(shoppingScannerActive ? 'shoppingBarcodeInput' : 'barcodeLookup').focus();
-    return;
-  }
-
   modal.classList.add('open');
   modal.setAttribute('aria-hidden','false');
-  msg.textContent = shoppingScannerActive ? 'Camera voor winkellijst wordt gestart…' : 'Camera wordt gestart…';
+  msg.textContent = targetShopping ? 'Camera voor winkellijst wordt gestart…' : 'Camera wordt gestart…';
 
   try{
-    const formats = ['ean_13','ean_8','upc_a','upc_e','code_128','code_39','itf'];
-    let supported = formats;
-    try{
-      const available = await BarcodeDetector.getSupportedFormats();
-      supported = formats.filter(f => available.includes(f));
-    }catch(_){}
-
-    scannerDetector = new BarcodeDetector({formats:supported.length ? supported : undefined});
-    scannerStream = await navigator.mediaDevices.getUserMedia({
-      video:{facingMode:{ideal:'environment'}, width:{ideal:1280}, height:{ideal:720}},
-      audio:false
-    });
-
-    video.srcObject = scannerStream;
-    await video.play();
-    msg.textContent = shoppingScannerActive ? 'Richt de camera op de barcode van het product.' : 'Richt de camera op de barcode.';
-
-    const scanLoop = async ()=>{
-      if(!scannerStream) return;
+    if('BarcodeDetector' in window){
+      const formats = ['ean_13','ean_8','upc_a','upc_e','code_128','code_39','itf'];
+      let supported = formats;
       try{
-        const codes = await scannerDetector.detect(video);
-        if(codes.length){
-          const code = codes[0].rawValue;
-          const wasShoppingScan = shoppingScannerActive;
-          closeScanner();
-          if(wasShoppingScan){
-            await lookupProductForShopping(code);
-          }else{
-            await lookupProduct(code);
+        const available = await BarcodeDetector.getSupportedFormats();
+        supported = formats.filter(f => available.includes(f));
+      }catch(_){ }
+
+      scannerDetector = new BarcodeDetector({formats:supported.length ? supported : undefined});
+      scannerStream = await navigator.mediaDevices.getUserMedia({
+        video:{facingMode:{ideal:'environment'}, width:{ideal:1280}, height:{ideal:720}},
+        audio:false
+      });
+      video.srcObject = scannerStream;
+      await video.play();
+      msg.textContent = targetShopping ? 'Richt de camera op de barcode van het product.' : 'Richt de camera op de barcode.';
+
+      const scanLoop = async ()=>{
+        if(!scannerStream) return;
+        try{
+          const codes = await scannerDetector.detect(video);
+          if(codes.length){
+            const code = codes[0].rawValue;
+            closeScanner();
+            if(targetShopping) await lookupProductForShopping(code);
+            else await lookupProduct(code);
+            return;
           }
-          return;
-        }
-      }catch(err){
-        // Blijf proberen; tijdelijke detectiefouten zijn normaal.
-      }
+        }catch(err){ /* Tijdelijke detectiefouten zijn normaal. */ }
+        scannerTimer = requestAnimationFrame(scanLoop);
+      };
       scannerTimer = requestAnimationFrame(scanLoop);
-    };
-    scannerTimer = requestAnimationFrame(scanLoop);
+      return;
+    }
+
+    // BarcodeDetector ontbreekt in onder meer Safari op iPhone: gebruik ZXing als fallback.
+    const Reader = window.ZXingBrowser?.BrowserMultiFormatReader;
+    if(!Reader){
+      throw new Error('De barcodescanner kon niet worden geladen. Controleer je internetverbinding en vernieuw de app.');
+    }
+    const reader = new Reader();
+    msg.textContent = 'Vraag om cameratoegang en richt de camera op de barcode.';
+    scannerControls = await reader.decodeFromConstraints(
+      {video:{facingMode:{ideal:'environment'}}, audio:false},
+      video,
+      async (result, error, controls)=>{
+        if(controls && !scannerControls) scannerControls = controls;
+        if(!result) return;
+        const code = typeof result.getText === 'function' ? result.getText() : result.text;
+        if(!code) return;
+        const useShopping = targetShopping;
+        closeScanner();
+        if(useShopping) await lookupProductForShopping(code);
+        else await lookupProduct(code);
+      }
+    );
+    msg.textContent = targetShopping ? 'Richt de camera op de barcode van het product.' : 'Richt de camera op de barcode.';
   }catch(err){
     console.error(err);
-    msg.textContent = 'De camera kon niet worden gestart.';
-    showToast('Cameratoegang geweigerd of niet beschikbaar.');
+    msg.textContent = err?.message || 'De camera kon niet worden gestart.';
+    showToast(err?.name==='NotAllowedError' ? 'Geef Voorraadkast toestemming voor cameratoegang.' : 'De camera kon niet worden gestart.');
   }
 }
 
-document.getElementById('scanButton').addEventListener('click', startScanner);
 document.getElementById('closeScanner').addEventListener('click', closeScanner);
 document.getElementById('stopScanner').addEventListener('click', closeScanner);
 
