@@ -120,6 +120,11 @@
   .shopping-remove{border:1px solid var(--line);background:#fff;color:var(--red);border-radius:10px;padding:8px 10px;font-weight:800;cursor:pointer}
   .shopping-top{display:flex;gap:8px;margin-bottom:14px}
   .shopping-top input{flex:1}
+  .shopping-suggestions{margin:-8px 0 14px;background:var(--card);border:1px solid var(--line);border-radius:13px;overflow:hidden;box-shadow:var(--shadow)}
+  .shopping-suggestion{display:block;width:100%;text-align:left;padding:12px 14px;border:0;border-bottom:1px solid var(--line);background:transparent;color:var(--text);font:inherit;cursor:pointer}
+  .shopping-suggestion:last-child{border-bottom:0}
+  .shopping-suggestion:active{background:#edf4ee}
+  .shopping-suggestion small{display:block;color:var(--muted);font-size:12px;margin-top:3px}
   .shopping-badge{display:inline-flex;min-width:20px;height:20px;padding:0 6px;align-items:center;justify-content:center;border-radius:999px;background:var(--accent);color:#fff;font-size:11px;margin-left:5px}
   .modal-overlay{display:none;position:fixed;inset:0;background:rgba(12,20,15,.58);z-index:40;padding:18px;align-items:center;justify-content:center}
   .modal-overlay.open{display:flex}
@@ -208,9 +213,10 @@
       </div>
 
       <div class="shopping-top">
-        <input id="shoppingInput" placeholder="Of productnaam toevoegen" autocomplete="off">
+        <input id="shoppingInput" placeholder="Of productnaam toevoegen" autocomplete="off" aria-autocomplete="list" aria-controls="shoppingSuggestions">
         <button class="primary" id="addShoppingButton" style="width:auto;padding:13px 15px;white-space:nowrap">＋ Voeg toe</button>
       </div>
+      <div id="shoppingSuggestions" class="shopping-suggestions" role="listbox" style="display:none"></div>
 
       <div id="shoppingList"></div>
     </section>
@@ -738,6 +744,7 @@ function renderMyProducts(){
       <div class="my-product-actions">
         <button class="secondary" type="button" data-my-action="shopping" data-my-index="${idx}">Winkellijst</button>
         <button class="secondary" type="button" data-my-action="stock" data-my-index="${idx}">＋ Voorraad</button>
+        <button class="secondary my-product-delete" type="button" data-my-action="delete" data-my-index="${idx}" aria-label="Verwijder ${escapeHtml(item.name)}">Verwijderen</button>
       </div>
     </div>`;
   }).join('');
@@ -766,6 +773,17 @@ function addMyProductToStock(name){
   document.getElementById('quantity').value='1';
   updatePreview();
   showToast(`${item.name} klaargezet om opnieuw toe te voegen.`);
+}
+
+function deleteMyProduct(item){
+  if(!item) return;
+  const key=normalizeMyProductKey(item.name,item.barcode||'');
+  if(!myProducts[key]) return;
+  if(!window.confirm(`Wil je ${item.name} verwijderen uit Mijn producten? Dit verwijdert het niet uit je huidige voorraad.`)) return;
+  delete myProducts[key];
+  localStorage.setItem(MY_PRODUCTS_KEY,JSON.stringify(myProducts));
+  renderMyProducts();
+  showToast(`${item.name} verwijderd uit Mijn producten.`);
 }
 
 function toggleProductInspiration(index){
@@ -811,6 +829,31 @@ async function lookupProductForShopping(code){
   showToast(`${item.name} onthouden en aan je winkellijst toegevoegd.`);
 }
 
+function renderShoppingSuggestions(){
+  const input=document.getElementById('shoppingInput');
+  const box=document.getElementById('shoppingSuggestions');
+  if(!input||!box) return;
+  const query=String(input.value||'').trim().toLocaleLowerCase('nl');
+  if(!query){box.innerHTML='';box.style.display='none';return;}
+  const matches=getMyProductArray().filter(item=>
+    String(item.name||'').toLocaleLowerCase('nl').includes(query)
+  ).slice(0,6);
+  if(!matches.length){box.innerHTML='';box.style.display='none';return;}
+  box.innerHTML=matches.map((item,index)=>`<button class="shopping-suggestion" type="button" role="option" data-suggestion-index="${index}">
+    ${escapeHtml(item.name)}<small>${escapeHtml(item.category||'Mijn producten')}</small>
+  </button>`).join('');
+  box.style.display='block';
+  box.dataset.names=JSON.stringify(matches.map(item=>item.name));
+}
+
+function chooseShoppingSuggestion(name){
+  const item=findMyProduct(name);
+  if(item) addToShoppingList(item);
+  const input=document.getElementById('shoppingInput');
+  if(input) input.value='';
+  renderShoppingSuggestions();
+}
+
 function addManualShoppingItem(){
   const input = document.getElementById('shoppingInput');
   const name = input.value.trim();
@@ -818,8 +861,10 @@ function addManualShoppingItem(){
     showToast('Vul een productnaam in.');
     return;
   }
-  if(addToShoppingList({name})){
+  const saved=findMyProduct(name);
+  if(addToShoppingList(saved||{name})){
     input.value = '';
+    renderShoppingSuggestions();
     input.focus();
   }
 }
@@ -1147,6 +1192,7 @@ document.getElementById('myProductsList').addEventListener('click', e=>{
   if(!item) return;
   if(button.dataset.myAction==='shopping') addMyProductToShopping(item.name);
   if(button.dataset.myAction==='stock') addMyProductToStock(item.name);
+  if(button.dataset.myAction==='delete') deleteMyProduct(item);
 });
 
 
@@ -1165,8 +1211,22 @@ document.getElementById('restockExpiryPhoto').addEventListener('change', e=>{
 });
 
 document.getElementById('addShoppingButton').addEventListener('click', addManualShoppingItem);
+document.getElementById('shoppingInput').addEventListener('input', renderShoppingSuggestions);
+document.getElementById('shoppingSuggestions').addEventListener('click', e=>{
+  const button=e.target.closest('button[data-suggestion-index]');
+  if(!button) return;
+  const names=JSON.parse(document.getElementById('shoppingSuggestions').dataset.names||'[]');
+  const name=names[Number(button.dataset.suggestionIndex)];
+  if(name) chooseShoppingSuggestion(name);
+});
 document.getElementById('shoppingInput').addEventListener('keydown', e=>{
-  if(e.key === 'Enter') addManualShoppingItem();
+  if(e.key === 'Enter'){
+    const box=document.getElementById('shoppingSuggestions');
+    const names=JSON.parse(box?.dataset.names||'[]');
+    if(names.length){e.preventDefault();chooseShoppingSuggestion(names[0]);}
+    else addManualShoppingItem();
+  }
+  if(e.key==='Escape') renderShoppingSuggestions();
 });
 document.getElementById('shoppingConfirmYes').addEventListener('click', handleShoppingConfirmYes);
 document.getElementById('shoppingConfirmNo').addEventListener('click', handleShoppingConfirmNo);
