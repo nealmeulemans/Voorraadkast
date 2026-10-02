@@ -80,8 +80,6 @@
   input:focus{border-color:#7ca58d;box-shadow:0 0 0 3px rgba(124,165,141,.14)}
   .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   .preview{margin-top:12px;padding:12px;background:#f5f7f5;border-radius:12px;font-size:13px;color:var(--muted)}
-  .demo-row{display:flex;gap:8px;margin-top:10px}
-  .demo-row button{flex:1;border:1px solid var(--line);background:white;border-radius:12px;padding:10px;cursor:pointer}
   .bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);max-width:480px;width:100%;background:rgba(255,255,255,.96);backdrop-filter:blur(12px);border-top:1px solid var(--line);display:grid;grid-template-columns:1fr 1.1fr 1.05fr;padding:8px 5px}
   .nav-btn{border:0;background:transparent;padding:8px 5px;border-radius:12px;color:var(--muted);font-weight:800;cursor:pointer;font-size:13px}
   .nav-btn.active{background:#edf4ee;color:var(--accent)}
@@ -263,7 +261,24 @@
           </div>
           <div>
             <label for="category">Categorie</label>
-            <input id="category" placeholder="bv. Broodbeleg">
+            <select id="category" aria-label="Categorie">
+              <option value="">Kies een categorie</option>
+              <option value="Groenten en fruit">Groenten en fruit</option>
+              <option value="Diepvries">Diepvries</option>
+              <option value="Zuivel">Zuivel</option>
+              <option value="Frisdrank">Frisdrank</option>
+              <option value="Andere dranken">Andere dranken</option>
+              <option value="Vlees en vis">Vlees en vis</option>
+              <option value="Brood en bakkerij">Brood en bakkerij</option>
+              <option value="Pasta en rijst">Pasta en rijst</option>
+              <option value="Ontbijtgranen">Ontbijtgranen</option>
+              <option value="Conserven">Conserven</option>
+              <option value="Snacks en snoep">Snacks en snoep</option>
+              <option value="Sauzen en kruiden">Sauzen en kruiden</option>
+              <option value="Bakken">Bakken</option>
+              <option value="Huishouden">Huishouden</option>
+              <option value="Overige">Overige</option>
+            </select>
           </div>
         </div>
 
@@ -371,6 +386,34 @@ function prettyDate(dateString){
   if(!dateString) return 'Geen datum';
   const d = new Date(dateString + 'T00:00:00');
   return new Intl.DateTimeFormat('nl-BE').format(d);
+}
+
+function setCategoryValue(value){
+  const select=document.getElementById('category');
+  if(!select) return;
+  const text=String(value||'').trim();
+  const known=[...select.options].some(option=>option.value.toLowerCase()===text.toLowerCase());
+  if(known){
+    select.value=[...select.options].find(option=>option.value.toLowerCase()===text.toLowerCase()).value;
+    return;
+  }
+  const v=text.toLowerCase();
+  let mapped='Overige';
+  if(/fruit|groent|aardappel|tomaat|sla|ui/.test(v)) mapped='Groenten en fruit';
+  else if(/diepvries|frozen|ijs/.test(v)) mapped='Diepvries';
+  else if(/zuivel|melk|kaas|yoghurt|boter/.test(v)) mapped='Zuivel';
+  else if(/frisdrank|cola|limonade|soda/.test(v)) mapped='Frisdrank';
+  else if(/drank|sap|water|koffie|thee/.test(v)) mapped='Andere dranken';
+  else if(/vlees|vis|kip|worst/.test(v)) mapped='Vlees en vis';
+  else if(/brood|bakker|beleg/.test(v)) mapped='Brood en bakkerij';
+  else if(/pasta|rijst|noedel/.test(v)) mapped='Pasta en rijst';
+  else if(/ontbijt|muesli|cornflakes/.test(v)) mapped='Ontbijtgranen';
+  else if(/conser|blik|bonen/.test(v)) mapped='Conserven';
+  else if(/snack|snoep|koek|chips|chocolade/.test(v)) mapped='Snacks en snoep';
+  else if(/saus|kruid|specerij/.test(v)) mapped='Sauzen en kruiden';
+  else if(/bak|bloem|suiker/.test(v)) mapped='Bakken';
+  else if(/huishoud|wasmiddel|poets/.test(v)) mapped='Huishouden';
+  select.value=mapped;
 }
 
 function iconFor(category=''){
@@ -693,11 +736,9 @@ function renderMyProducts(){
         </div>
       </div>
       <div class="my-product-actions">
-        <button class="secondary" onclick="addMyProductToShopping(${JSON.stringify(item.name).replace(/</g,'\\u003c')})">Winkellijst</button>
-        <button class="secondary" onclick="addMyProductToStock(${JSON.stringify(item.name).replace(/</g,'\\u003c')})">＋ Voorraad</button>
-        <button class="secondary" onclick="toggleProductInspiration(${idx})">🍽️ Inspiratie</button>
+        <button class="secondary" type="button" data-my-action="shopping" data-my-index="${idx}">Winkellijst</button>
+        <button class="secondary" type="button" data-my-action="stock" data-my-index="${idx}">＋ Voorraad</button>
       </div>
-      <div class="inspiration-box" id="idea_${idx}" style="display:none"><strong>Maaltijdideeën</strong>${ideaHtml}</div>
     </div>`;
   }).join('');
 }
@@ -720,7 +761,7 @@ function addMyProductToStock(name){
   document.getElementById('productName').value=item.name||'';
   document.getElementById('barcode').value=item.barcode||'';
   document.getElementById('barcodeLookup').value=item.barcode||'';
-  document.getElementById('category').value=item.category||'';
+  setCategoryValue(item.category||'');
   document.getElementById('expiry').value='';
   document.getElementById('quantity').value='1';
   updatePreview();
@@ -1012,6 +1053,16 @@ function extractExpiryDate(text){
   const reMonthDay=new RegExp('\\b(' + monthPattern + ')[\\s./-]+(\\d{1,2})[\\s.,/-]+(20\\d{2}|\\d{2})\\b','g');
   for(const m of raw.matchAll(reMonthDay)) add(dateFromParts(m[2],months[m[1]],m[3]));
 
+  // Month + year only: NOV 25 or NOV 2025. Use the month's final calendar day.
+  const reMonthYear=new RegExp('\\b(' + monthPattern + ')[\\s./-]+(20\\d{2}|\\d{2})\\b','g');
+  for(const m of raw.matchAll(reMonthYear)){
+    let year=String(m[2]);
+    if(year.length===2) year=(Number(year)<50?'20':'19')+year;
+    const month=months[m[1]];
+    const lastDay=new Date(Number(year),month,0).getDate();
+    add(dateFromParts(lastDay,month,year));
+  }
+
   // Compact numeric forms occasionally printed on packaging: 011026 / 01102026
   for(const m of numeric.matchAll(/\b(\d{2})(\d{2})(20\d{2}|\d{2})\b/g)){
     add(dateFromParts(m[1],m[2],m[3]));
@@ -1075,24 +1126,6 @@ async function scanExpiryPhoto(file, targetId='expiry', statusId='ocrStatus'){
   }
 }
 
-function fillDemo(which){
-  if(which==='nutella'){
-    const future=new Date(); future.setDate(future.getDate()+18);
-    document.getElementById('productName').value='Nutella';
-    document.getElementById('barcode').value='3017620422003';
-    document.getElementById('category').value='Broodbeleg';
-    document.getElementById('expiry').value=future.toISOString().slice(0,10);
-  } else {
-    const future=new Date(); future.setDate(future.getDate()+120);
-    document.getElementById('productName').value='Spaghetti';
-    document.getElementById('barcode').value='8001250123456';
-    document.getElementById('category').value='Pasta';
-    document.getElementById('expiry').value=future.toISOString().slice(0,10);
-  }
-  updatePreview();
-  showToast('Demo-product ingevuld.');
-}
-
 document.getElementById('scanButton').addEventListener('click', ()=>startScanner('stock'));
 document.getElementById('scanShoppingButton').addEventListener('click', ()=>startScanner('shopping'));
 document.getElementById('shoppingBarcodeButton').addEventListener('click', ()=>{
@@ -1102,6 +1135,20 @@ document.getElementById('shoppingBarcodeInput').addEventListener('keydown', e=>{
   if(e.key==='Enter') lookupProductForShopping(e.target.value);
 });
 document.getElementById('myProductsSearch').addEventListener('input', renderMyProducts);
+document.getElementById('myProductsList').addEventListener('click', e=>{
+  const button=e.target.closest('button[data-my-action]');
+  if(!button) return;
+  const index=Number(button.dataset.myIndex);
+  const items=getMyProductArray().filter(item=>{
+    const query=String(document.getElementById('myProductsSearch')?.value||'').trim().toLowerCase();
+    return !query || String(item.name||'').toLowerCase().includes(query) || String(item.category||'').toLowerCase().includes(query);
+  });
+  const item=items[index];
+  if(!item) return;
+  if(button.dataset.myAction==='shopping') addMyProductToShopping(item.name);
+  if(button.dataset.myAction==='stock') addMyProductToStock(item.name);
+});
+
 
 document.getElementById('restockCancel').addEventListener('click', closeRestockModal);
 document.getElementById('restockSave').addEventListener('click', saveRestock);
@@ -1251,7 +1298,7 @@ function applyProductData(product, barcode, sourceLabel){
   const category = String(product.categories || '').split(',')[0].trim();
 
   document.getElementById('productName').value = name;
-  document.getElementById('category').value = category;
+  setCategoryValue(category);
   setBarcode(product.code || barcode);
 
   if(name){
